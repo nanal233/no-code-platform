@@ -1,6 +1,6 @@
-package com.josee.aiagentmother.common;
+package com.josee.aicodemother.common;
 
-import com.josee.aiagentmother.exception.ErrorCode;
+import com.josee.aicodemother.exception.ErrorCode;
 import lombok.Data;
 
 import java.io.Serializable;

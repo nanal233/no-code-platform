@@ -1,4 +1,4 @@
-package com.josee.aiagentmother.exception;
+package com.josee.aicodemother.exception;
 
 import lombok.Getter;
 

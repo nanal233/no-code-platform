@@ -1,4 +1,4 @@
-package com.josee.aiagentmother.common;
+package com.josee.aicodemother.common;
 
 import lombok.Data;
 

@@ -1,7 +1,7 @@
-package com.josee.aiagentmother.controller;
+package com.josee.aicodemother.controller;
 
-import com.josee.aiagentmother.common.BaseResponse;
-import com.josee.aiagentmother.common.ResultUtils;
+import com.josee.aicodemother.common.BaseResponse;
+import com.josee.aicodemother.common.ResultUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;

@@ -1,4 +1,4 @@
-package com.josee.aiagentmother.config;
+package com.josee.aicodemother.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;

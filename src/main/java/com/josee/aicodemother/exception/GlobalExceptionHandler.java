@@ -1,7 +1,7 @@
-package com.josee.aiagentmother.exception;
+package com.josee.aicodemother.exception;
 
-import com.josee.aiagentmother.common.BaseResponse;
-import com.josee.aiagentmother.common.ResultUtils;
+import com.josee.aicodemother.common.BaseResponse;
+import com.josee.aicodemother.common.ResultUtils;
 import io.swagger.v3.oas.annotations.Hidden;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;
