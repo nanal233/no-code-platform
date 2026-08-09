@@ -1,6 +1,15 @@
 spring:
   application:
     name: ai-code-mother-backend
+  profiles:
+    active: local
+  # mysql
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/ai_code_mother
+    username: root
+    password: ${SQL_PWD}
+
 server:
   port: 8123
   servlet:
