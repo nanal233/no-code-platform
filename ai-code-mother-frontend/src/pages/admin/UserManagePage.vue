@@ -33,7 +33,7 @@
           </div>
         </template>
         <template v-else-if="column.dataIndex === 'createTime'">
-          {{ dayjs(record.createTime).format('YYYY-MM-DD HH:mm:ss') }}
+          {{ formatDateTime(record.createTime) }}
         </template>
         <template v-else-if="column.key === 'action'">
           <a-button danger @click="doDelete(record.id)">删除</a-button>
@@ -44,10 +44,11 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { onMounted } from 'vue'
 import { deleteUser, listUserVoByPage } from '@/api/userController.ts'
 import { message } from 'ant-design-vue'
-import dayjs from 'dayjs'
+import { formatDateTime } from '@/utils/datetime.ts'
+import { useAdminTable } from '@/composables/useAdminTable.ts'
 
 const columns = [
   {
@@ -84,56 +85,16 @@ const columns = [
   },
 ]
 
-// 数据
-const data = ref<API.UserVO[]>([])
-const total = ref(0)
-
-// 搜索条件
-const searchParams = reactive<API.UserQueryRequest>({
+const { data, searchParams, fetchData, pagination, doTableChange, doSearch } = useAdminTable<
+  API.UserVO,
+  API.UserQueryRequest
+>(listUserVoByPage, {
   pageNum: 1,
   pageSize: 10,
 })
 
-// 获取数据
-const fetchData = async () => {
-  const res = await listUserVoByPage({
-    ...searchParams,
-  })
-  if (res.data.data) {
-    data.value = res.data.data.records ?? []
-    total.value = res.data.data.totalRow ?? 0
-  } else {
-    message.error('获取数据失败，' + res.data.message)
-  }
-}
-
-// 分页参数
-const pagination = computed(() => {
-  return {
-    current: searchParams.pageNum ?? 1,
-    pageSize: searchParams.pageSize ?? 10,
-    total: total.value,
-    showSizeChanger: true,
-    showTotal: (total: number) => `共 ${total} 条`,
-  }
-})
-
-// 表格变化处理
-const doTableChange = (page: any) => {
-  searchParams.pageNum = page.current
-  searchParams.pageSize = page.pageSize
-  fetchData()
-}
-
-// 获取数据
-const doSearch = () => {
-  // 重置页码
-  searchParams.pageNum = 1
-  fetchData()
-}
-
 // 删除数据
-const doDelete = async (id: string) => {
+const doDelete = async (id: number) => {
   if (!id) {
     return
   }

@@ -1,7 +1,5 @@
 <template>
-  <div id="userRegisterPage">
-    <h2 class="title">AI 应用生成 - 用户注册</h2>
-    <div class="desc">不写一行代码，生成完整应用</div>
+  <AuthCard title="AI 应用生成 - 用户注册" desc="不写一行代码，生成完整应用">
     <a-form :model="formState" name="basic" autocomplete="off" @finish="handleSubmit">
       <a-form-item name="userAccount" :rules="[{ required: true, message: '请输入账号' }]">
         <a-input v-model:value="formState.userAccount" placeholder="请输入账号" />
@@ -32,7 +30,7 @@
         <a-button type="primary" html-type="submit" style="width: 100%">注册</a-button>
       </a-form-item>
     </a-form>
-  </div>
+  </AuthCard>
 </template>
 
 <script lang="ts" setup>
@@ -40,6 +38,8 @@ import { reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { userRegister } from '@/api/userController.ts'
 import { message } from 'ant-design-vue'
+import AuthCard from '@/components/AuthCard.vue'
+
 const formState = reactive<API.UserRegisterRequest>({
   userAccount: '',
   userPassword: '',
@@ -70,28 +70,3 @@ const handleSubmit = async (values: any) => {
   }
 }
 </script>
-
-<style>
-#userRegisterPage {
-  max-width: 360px;
-  margin: 0 auto;
-}
-
-.title {
-  text-align: center;
-  margin-bottom: 16px;
-}
-
-.desc {
-  text-align: center;
-  color: #bbb;
-  margin-bottom: 16px;
-}
-
-.tips {
-  margin-bottom: 16px;
-  color: #bbb;
-  font-size: 13px;
-  text-align: right;
-}
-</style>

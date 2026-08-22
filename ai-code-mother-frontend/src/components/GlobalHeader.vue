@@ -22,13 +22,18 @@ const originItems = [
   },
   {
     key: 'others',
-    label: h('a', {href: 'https://github.com/nanal233', target: '_blank'}, '关于作者'),
+    label: h('a', { href: 'https://github.com/nanal233', target: '_blank' }, '关于作者'),
     title: '主页',
   },
   {
     key: '/admin/userManage',
     label: '用户管理',
     title: '用户管理',
+  },
+  {
+    key: '/admin/appManage',
+    label: '应用管理',
+    title: '应用管理',
   },
 ]
 
@@ -52,6 +57,10 @@ const menuItems = computed<MenuProps['items']>(() => filterMenus(originItems))
 const selectedKeys = computed(() => [route.path])
 
 const handleMenuClick = ({ key }: { key: string }) => {
+  // “关于作者”是外部链接，交给菜单项内的 <a target="_blank"> 处理跳转，当前页面不需要再路由跳转
+  if (key === 'others') {
+    return
+  }
   router.push(key)
 }
 
