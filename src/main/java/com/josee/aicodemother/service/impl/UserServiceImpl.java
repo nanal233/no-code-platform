@@ -5,7 +5,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.josee.aicodemother.exception.BusinessException;
 import com.josee.aicodemother.exception.ErrorCode;
-import com.josee.aicodemother.model.dto.UserQueryRequest;
+import com.josee.aicodemother.model.dto.user.UserQueryRequest;
 import com.josee.aicodemother.model.enums.UserRoleEnum;
 import com.josee.aicodemother.model.vo.LoginUserVO;
 import com.josee.aicodemother.model.vo.UserVO;

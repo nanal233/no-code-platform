@@ -1,6 +1,6 @@
 package com.josee.aicodemother.service;
 
-import com.josee.aicodemother.model.dto.UserQueryRequest;
+import com.josee.aicodemother.model.dto.user.UserQueryRequest;
 import com.josee.aicodemother.model.vo.LoginUserVO;
 import com.josee.aicodemother.model.vo.UserVO;
 import com.mybatisflex.core.query.QueryWrapper;
@@ -8,7 +8,6 @@ import com.mybatisflex.core.service.IService;
 import com.josee.aicodemother.model.entity.User;
 import jakarta.servlet.http.HttpServletRequest;
 
-import javax.management.Query;
 import java.util.List;
 
 /**
