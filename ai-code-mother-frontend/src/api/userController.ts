@@ -15,7 +15,7 @@ export async function addUser(body: API.UserAddRequest, options?: { [key: string
 }
 
 /** 此处后端没有提供注释 POST /user/delete */
-export async function deleteUser(body: { id: string }, options?: { [p: string]: any }) {
+export async function deleteUser(body: API.DeleteRequest, options?: { [key: string]: any }) {
   return request<API.BaseResponseBoolean>('/user/delete', {
     method: 'POST',
     headers: {
