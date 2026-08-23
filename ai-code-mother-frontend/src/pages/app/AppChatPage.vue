@@ -28,9 +28,22 @@
       <!-- 左侧：对话区域 -->
       <div class="chat-panel">
         <div ref="messageListRef" class="message-list">
+          <div v-if="chatHistory.loadingInitial.value" class="history-loading">
+            <a-spin size="small" />
+          </div>
+          <div v-else-if="chatHistory.hasMore.value" class="load-more">
+            <a-button
+              type="link"
+              size="small"
+              :loading="chatHistory.loadingMore.value"
+              @click="chatHistory.loadMore"
+            >
+              加载更多历史消息
+            </a-button>
+          </div>
           <div
-            v-for="(msg, index) in messages"
-            :key="index"
+            v-for="msg in chatHistory.messages.value"
+            :key="msg.id"
             class="message-row"
             :class="msg.role === 'user' ? 'message-row-user' : 'message-row-ai'"
           >
@@ -116,16 +129,11 @@ import {
 import { deleteApp, deployApp, getAppVoById } from '@/api/appController.ts'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { useIsAdmin } from '@/composables/useIsAdmin.ts'
+import { useChatHistory } from '@/composables/useChatHistory.ts'
 import { API_BASE_URL } from '@/config/env.ts'
 import { asId } from '@/utils/id.ts'
 import { renderMarkdown } from '@/utils/markdown.ts'
 import AppDetailPopover from '@/components/AppDetailPopover.vue'
-
-interface ChatMessage {
-  role: 'user' | 'ai'
-  content: string
-  loading?: boolean
-}
 
 const route = useRoute()
 const router = useRouter()
@@ -138,7 +146,7 @@ const isOwner = computed(
 )
 const isAdmin = useIsAdmin()
 
-const messages = ref<ChatMessage[]>([])
+const chatHistory = useChatHistory(() => appId.value)
 const userInput = ref('')
 const generating = ref(false)
 const showPreview = ref(false)
@@ -171,8 +179,9 @@ const sendMessage = (content: string) => {
   if (!trimmed || generating.value || !isOwner.value) {
     return
   }
-  messages.value.push({ role: 'user', content: trimmed })
-  messages.value.push({ role: 'ai', content: '', loading: true })
+  const messages = chatHistory.messages
+  messages.value.push({ id: crypto.randomUUID(), role: 'user', content: trimmed })
+  messages.value.push({ id: crypto.randomUUID(), role: 'ai', content: '', loading: true })
   // 取回数组中的响应式代理对象，而非本地原始对象，逐字追加内容时才能触发视图更新
   const aiMessage = messages.value[messages.value.length - 1]
   scrollToBottom()
@@ -283,6 +292,12 @@ const fetchAppInfo = async () => {
 
 onMounted(async () => {
   await fetchAppInfo()
+  await chatHistory.loadInitial()
+  scrollToBottom()
+  // 已有至少 2 条对话记录，说明代码已生成过，直接展示对应网站
+  if (chatHistory.totalCount.value >= 2) {
+    showPreview.value = true
+  }
   if (route.query.init === '1' && appInfo.value.initPrompt) {
     // 应用刚创建，自动发送初始提示词
     router.replace({ query: {} })
@@ -343,6 +358,18 @@ onUnmounted(() => {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+}
+
+.history-loading {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 16px;
+}
+
+.load-more {
+  display: flex;
+  justify-content: center;
+  padding: 0 0 16px;
 }
 
 .message-row {

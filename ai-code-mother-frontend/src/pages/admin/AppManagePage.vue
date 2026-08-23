@@ -44,7 +44,7 @@
           <a-image v-if="record.cover" :src="record.cover" :width="80" />
         </template>
         <template v-else-if="column.dataIndex === 'initPrompt'">
-          <a-typography-text :ellipsis="{ tooltip: record.initPrompt }" style="max-width: 240px">
+          <a-typography-text :ellipsis="{ tooltip: record.initPrompt }" style="max-width: 100%">
             {{ record.initPrompt }}
           </a-typography-text>
         </template>
@@ -99,6 +99,7 @@ const columns = [
   {
     title: '初始 prompt',
     dataIndex: 'initPrompt',
+    width: 280,
   },
   {
     title: '生成类型',
