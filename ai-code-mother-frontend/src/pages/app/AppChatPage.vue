@@ -67,6 +67,8 @@
         </div>
         <div class="message-input-box">
           <a-textarea
+            :key="textareaKey"
+            ref="textareaRef"
             v-model:value="userInput"
             :placeholder="
               isOwner ? '请描述你想生成的网站，越详细效果越好哦' : '仅应用创建者可以继续对话生成'
@@ -74,6 +76,8 @@
             :auto-size="{ minRows: 2, maxRows: 5 }"
             :disabled="!isOwner || generating"
             @keydown="handleKeydown"
+            @compositionstart="isComposing = true"
+            @compositionend="isComposing = false"
           />
           <div class="message-input-footer">
             <a-button
@@ -148,6 +152,11 @@ const isAdmin = useIsAdmin()
 
 const chatHistory = useChatHistory(() => appId.value)
 const userInput = ref('')
+// 中文等输入法组词过程中按下的确认键也会触发 keydown Enter，此时不应发送消息
+const isComposing = ref(false)
+// 发送后强制重新挂载输入框，避免自动高度文本域内部状态与外部值不同步导致文本残留
+const textareaKey = ref(0)
+const textareaRef = ref()
 const generating = ref(false)
 const showPreview = ref(false)
 const iframeKey = ref(0)
@@ -232,10 +241,19 @@ const handleSend = () => {
   }
   sendMessage(userInput.value)
   userInput.value = ''
+  // 通过更换 key 强制输入框重新挂载，确保清空后不会残留旧值
+  textareaKey.value++
+  nextTick(() => {
+    textareaRef.value?.focus?.()
+  })
 }
 
 const handleKeydown = (e: KeyboardEvent) => {
   if (e.key === 'Enter' && !e.shiftKey) {
+    // 输入法候选词确认（如中文拼音选字）也会触发 Enter，此时应放行给输入法处理，而不是发送
+    if (isComposing.value || e.isComposing) {
+      return
+    }
     e.preventDefault()
     handleSend()
   }
