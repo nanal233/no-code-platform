@@ -136,6 +136,7 @@ import { useIsAdmin } from '@/composables/useIsAdmin.ts'
 import { useChatHistory } from '@/composables/useChatHistory.ts'
 import { API_BASE_URL } from '@/config/env.ts'
 import { asId } from '@/utils/id.ts'
+import { getStaticPreviewUrl } from '@/utils/preview.ts'
 import { renderMarkdown } from '@/utils/markdown.ts'
 import AppDetailPopover from '@/components/AppDetailPopover.vue'
 
@@ -162,12 +163,7 @@ const showPreview = ref(false)
 const iframeKey = ref(0)
 const messageListRef = ref<HTMLDivElement>()
 
-const previewUrl = computed(() => {
-  if (!appInfo.value.codeGenType || !appId.value) {
-    return ''
-  }
-  return `${API_BASE_URL}/static/${appInfo.value.codeGenType}_${appId.value}/`
-})
+const previewUrl = computed(() => getStaticPreviewUrl(appInfo.value.codeGenType, appId.value))
 
 const openInNewTab = () => {
   window.open(previewUrl.value, '_blank')

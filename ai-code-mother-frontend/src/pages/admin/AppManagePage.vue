@@ -49,7 +49,7 @@
           </a-typography-text>
         </template>
         <template v-else-if="column.dataIndex === 'codeGenType'">
-          <a-tag color="blue">{{ record.codeGenType }}</a-tag>
+          <a-tag color="blue">{{ codeGenTypeLabel(record.codeGenType) }}</a-tag>
         </template>
         <template v-else-if="column.dataIndex === 'priority'">
           <a-tag v-if="record.priority >= 99" color="gold">精选</a-tag>
@@ -82,6 +82,7 @@ import { deleteAppByAdmin, listAppVoByPageByAdmin, updateAppByAdmin } from '@/ap
 import { message } from 'ant-design-vue'
 import { formatDateTime } from '@/utils/datetime.ts'
 import { useAdminTable } from '@/composables/useAdminTable.ts'
+import { CODE_GEN_TYPE_OPTIONS } from '@/constants/codeGenType.ts'
 
 const columns = [
   {
@@ -127,10 +128,11 @@ const columns = [
   },
 ]
 
-const codeGenTypeOptions = [
-  { label: '原生 HTML 模式', value: 'html' },
-  { label: '原生多文件模式', value: 'multi_file' },
-]
+const codeGenTypeOptions = CODE_GEN_TYPE_OPTIONS
+
+const codeGenTypeLabel = (value?: string) => {
+  return CODE_GEN_TYPE_OPTIONS.find((option) => option.value === value)?.label ?? value
+}
 
 const { data, searchParams, fetchData, pagination, doTableChange, doSearch } = useAdminTable<
   API.AppVO,
