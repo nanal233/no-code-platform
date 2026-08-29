@@ -10,6 +10,10 @@
           </div>
         </div>
         <div class="app-detail-row">
+          <div class="app-detail-label">生成类型</div>
+          <a-tag color="blue">{{ getCodeGenTypeLabel(app.codeGenType) }}</a-tag>
+        </div>
+        <div class="app-detail-row">
           <div class="app-detail-label">创建时间</div>
           <div class="app-detail-value">{{ formatDateTime(app.createTime) }}</div>
         </div>
@@ -32,6 +36,7 @@
 import { h } from 'vue'
 import { InfoCircleOutlined, UserOutlined } from '@ant-design/icons-vue'
 import { formatDateTime } from '@/utils/datetime.ts'
+import { getCodeGenTypeLabel } from '@/constants/codeGenType.ts'
 
 defineProps<{
   app: API.AppVO

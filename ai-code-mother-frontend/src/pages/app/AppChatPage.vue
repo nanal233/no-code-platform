@@ -4,6 +4,9 @@
     <div class="chat-header">
       <div class="chat-header-left">
         <span class="app-name">{{ appInfo.appName || '应用生成中' }}</span>
+        <a-tag v-if="appInfo.codeGenType" color="blue">
+          {{ getCodeGenTypeLabel(appInfo.codeGenType) }}
+        </a-tag>
       </div>
       <div class="chat-header-right">
         <AppDetailPopover
@@ -12,6 +15,14 @@
           @edit="handleEdit"
           @delete="handleDelete"
         />
+        <a-button
+          v-if="isOwner"
+          :icon="h(DownloadOutlined)"
+          :loading="downloading"
+          @click="handleDownloadCode"
+        >
+          下载代码
+        </a-button>
         <a-button
           v-if="isOwner"
           type="primary"
@@ -125,6 +136,7 @@ import { message } from 'ant-design-vue'
 import {
   ArrowUpOutlined,
   CloudUploadOutlined,
+  DownloadOutlined,
   ExportOutlined,
   ReloadOutlined,
   RobotOutlined,
@@ -137,6 +149,8 @@ import { useChatHistory } from '@/composables/useChatHistory.ts'
 import { API_BASE_URL } from '@/config/env.ts'
 import { asId } from '@/utils/id.ts'
 import { getStaticPreviewUrl } from '@/utils/preview.ts'
+import { downloadAppCode } from '@/utils/download.ts'
+import { getCodeGenTypeLabel } from '@/constants/codeGenType.ts'
 import { renderMarkdown } from '@/utils/markdown.ts'
 import AppDetailPopover from '@/components/AppDetailPopover.vue'
 
@@ -255,6 +269,23 @@ const handleKeydown = (e: KeyboardEvent) => {
   }
 }
 
+// 下载代码
+const downloading = ref(false)
+
+const handleDownloadCode = async () => {
+  if (downloading.value) {
+    return
+  }
+  downloading.value = true
+  try {
+    await downloadAppCode(appId.value)
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : '下载失败')
+  } finally {
+    downloading.value = false
+  }
+}
+
 // 部署
 const deployModalOpen = ref(false)
 const deployedUrl = ref('')
@@ -340,6 +371,12 @@ onUnmounted(() => {
   padding: 12px 24px;
   background: #fff;
   border-bottom: 1px solid #f0f0f0;
+}
+
+.chat-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .app-name {

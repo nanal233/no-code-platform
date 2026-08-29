@@ -82,7 +82,7 @@ import { deleteAppByAdmin, listAppVoByPageByAdmin, updateAppByAdmin } from '@/ap
 import { message } from 'ant-design-vue'
 import { formatDateTime } from '@/utils/datetime.ts'
 import { useAdminTable } from '@/composables/useAdminTable.ts'
-import { CODE_GEN_TYPE_OPTIONS } from '@/constants/codeGenType.ts'
+import { CODE_GEN_TYPE_OPTIONS, getCodeGenTypeLabel } from '@/constants/codeGenType.ts'
 
 const columns = [
   {
@@ -129,10 +129,7 @@ const columns = [
 ]
 
 const codeGenTypeOptions = CODE_GEN_TYPE_OPTIONS
-
-const codeGenTypeLabel = (value?: string) => {
-  return CODE_GEN_TYPE_OPTIONS.find((option) => option.value === value)?.label ?? value
-}
+const codeGenTypeLabel = getCodeGenTypeLabel
 
 const { data, searchParams, fetchData, pagination, doTableChange, doSearch } = useAdminTable<
   API.AppVO,
