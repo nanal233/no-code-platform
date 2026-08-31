@@ -77,6 +77,18 @@
           </div>
         </div>
         <div class="message-input-box">
+          <a-alert
+            v-if="visualEditor.selectedElement.value"
+            class="selected-element-alert"
+            type="info"
+            closable
+            show-icon
+            @close="visualEditor.clearSelection"
+          >
+            <template #message>
+              已选中元素：<code>{{ selectedElementSummary }}</code>
+            </template>
+          </a-alert>
           <a-textarea
             :key="textareaKey"
             ref="textareaRef"
@@ -91,6 +103,15 @@
             @compositionend="isComposing = false"
           />
           <div class="message-input-footer">
+            <a-tooltip title="可视化编辑：在预览区点选要修改的元素">
+              <a-button
+                :type="visualEditor.editMode.value ? 'primary' : 'default'"
+                shape="circle"
+                :icon="h(SelectOutlined)"
+                :disabled="!isOwner || generating || !showPreview"
+                @click="visualEditor.toggleEditMode"
+              />
+            </a-tooltip>
             <a-button
               type="primary"
               shape="circle"
@@ -115,7 +136,12 @@
           </a-space>
         </div>
         <div v-if="showPreview" class="preview-frame-wrapper">
-          <iframe :key="iframeKey" :src="previewUrl" class="preview-frame" />
+          <iframe
+            ref="previewFrameRef"
+            :key="iframeKey"
+            :src="previewUrl"
+            class="preview-frame"
+          />
         </div>
         <a-empty v-else class="preview-empty" description="生成完成后将在这里展示网站效果" />
       </div>
@@ -140,6 +166,7 @@ import {
   ExportOutlined,
   ReloadOutlined,
   RobotOutlined,
+  SelectOutlined,
   UserOutlined,
 } from '@ant-design/icons-vue'
 import { deleteApp, deployApp, getAppVoById } from '@/api/appController.ts'
@@ -152,6 +179,7 @@ import { getStaticPreviewUrl } from '@/utils/preview.ts'
 import { downloadAppCode } from '@/utils/download.ts'
 import { getCodeGenTypeLabel } from '@/constants/codeGenType.ts'
 import { renderMarkdown } from '@/utils/markdown.ts'
+import { appendSelectedElementToPrompt, useVisualEditor } from '@/utils/visualEditor.ts'
 import AppDetailPopover from '@/components/AppDetailPopover.vue'
 
 const route = useRoute()
@@ -177,6 +205,19 @@ const showPreview = ref(false)
 const iframeKey = ref(0)
 const messageListRef = ref<HTMLDivElement>()
 
+// 可视化编辑：在预览 iframe 中悬浮/点选元素
+const previewFrameRef = ref<HTMLIFrameElement>()
+const visualEditor = useVisualEditor(previewFrameRef)
+const selectedElementSummary = computed(() => {
+  const el = visualEditor.selectedElement.value
+  if (!el) {
+    return ''
+  }
+  const idPart = el.id ? `#${el.id}` : ''
+  const classPart = el.className ? `.${el.className.split(/\s+/).join('.')}` : ''
+  return `<${el.tagName}${idPart}${classPart}>`
+})
+
 const previewUrl = computed(() => getStaticPreviewUrl(appInfo.value.codeGenType, appId.value))
 
 const openInNewTab = () => {
@@ -193,13 +234,13 @@ const scrollToBottom = () => {
 
 let eventSource: EventSource | null = null
 
-const sendMessage = (content: string) => {
+const sendMessage = (content: string, displayContent: string = content) => {
   const trimmed = content.trim()
   if (!trimmed || generating.value || !isOwner.value) {
     return
   }
   const messages = chatHistory.messages
-  messages.value.push({ id: crypto.randomUUID(), role: 'user', content: trimmed })
+  messages.value.push({ id: crypto.randomUUID(), role: 'user', content: displayContent.trim() })
   messages.value.push({ id: crypto.randomUUID(), role: 'ai', content: '', loading: true })
   // 取回数组中的响应式代理对象，而非本地原始对象，逐字追加内容时才能触发视图更新
   const aiMessage = messages.value[messages.value.length - 1]
@@ -249,8 +290,15 @@ const handleSend = () => {
   if (!userInput.value.trim()) {
     return
   }
-  sendMessage(userInput.value)
+  const displayContent = userInput.value
+  const selectedElement = visualEditor.selectedElement.value
+  const sendContent = selectedElement
+    ? appendSelectedElementToPrompt(displayContent, selectedElement)
+    : displayContent
+  sendMessage(sendContent, displayContent)
   userInput.value = ''
+  // 发送后退出可视化编辑模式并清除已选中的元素
+  visualEditor.exitEditMode()
   // 通过更换 key 强制输入框重新挂载，确保清空后不会残留旧值
   textareaKey.value++
   nextTick(() => {
@@ -517,8 +565,14 @@ onUnmounted(() => {
 
 .message-input-footer {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: 8px;
   margin-top: 8px;
+}
+
+.selected-element-alert {
+  margin-bottom: 8px;
 }
 
 .preview-panel {
