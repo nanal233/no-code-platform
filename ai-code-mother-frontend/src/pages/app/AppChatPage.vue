@@ -248,11 +248,14 @@ const sendMessage = (content: string, displayContent: string = content) => {
 
   generating.value = true
   showPreview.value = false
+  // 标记流程是否已结束（done/business-error/onerror 三者互斥，避免重复处理或互相覆盖结果）
+  let streamCompleted = false
 
   const url = `${API_BASE_URL}/app/chat/gen/code?appId=${appId.value}&message=${encodeURIComponent(trimmed)}`
   eventSource = new EventSource(url, { withCredentials: true })
 
   eventSource.onmessage = (event) => {
+    if (streamCompleted) return
     try {
       const data = JSON.parse(event.data)
       if (data.d) {
@@ -266,6 +269,9 @@ const sendMessage = (content: string, displayContent: string = content) => {
   }
 
   eventSource.addEventListener('done', () => {
+    // 后端在发送 business-error 后会紧接着再发一次 done，此时不应再覆盖已展示的错误结果
+    if (streamCompleted) return
+    streamCompleted = true
     aiMessage.loading = false
     generating.value = false
     eventSource?.close()
@@ -274,7 +280,38 @@ const sendMessage = (content: string, displayContent: string = content) => {
     iframeKey.value++
   })
 
+  // 处理 business-error 事件（后端限流等错误）
+  eventSource.addEventListener('business-error', (event: MessageEvent) => {
+    if (streamCompleted) return
+    try {
+      const errorData = JSON.parse(event.data)
+      console.error('SSE业务错误事件:', errorData)
+
+      // 显示具体的错误信息
+      const errorMessage = errorData.message || '生成过程中出现错误'
+      aiMessage.content = `❌ ${errorMessage}`
+      aiMessage.loading = false
+      message.error(errorMessage)
+
+      streamCompleted = true
+      generating.value = false
+      eventSource?.close()
+      eventSource = null
+    } catch (parseError) {
+      console.error('解析错误事件失败:', parseError, '原始数据:', event.data)
+      streamCompleted = true
+      generating.value = false
+      aiMessage.loading = false
+      message.error('服务器返回错误')
+      eventSource?.close()
+      eventSource = null
+    }
+  })
+
   eventSource.onerror = () => {
+    // business-error 已经展示过具体错误信息，这里不再重复弹提示/清空消息
+    if (streamCompleted) return
+    streamCompleted = true
     generating.value = false
     aiMessage.loading = false
     if (!aiMessage.content) {
