@@ -61,9 +61,14 @@
             <a-avatar v-if="msg.role === 'ai'" class="message-avatar" :icon="h(RobotOutlined)" />
             <div class="message-bubble">
               <div
-                v-if="msg.role === 'ai' && msg.content"
+                v-if="msg.role === 'ai' && msg.content && !msg.streaming"
                 class="markdown-body"
                 v-html="renderMarkdown(msg.content)"
+              />
+              <div
+                v-else-if="msg.streaming && msg.renderedHtml"
+                class="markdown-body"
+                v-html="msg.renderedHtml"
               />
               <span v-else-if="msg.content" class="plain-text">{{ msg.content }}</span>
               <a-spin v-else-if="msg.loading" size="small" />
@@ -174,7 +179,7 @@ import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { useIsAdmin } from '@/composables/useIsAdmin.ts'
 import { useChatHistory } from '@/composables/useChatHistory.ts'
 import { API_BASE_URL } from '@/config/env.ts'
-import { asId } from '@/utils/id.ts'
+import { asId, generateLocalId } from '@/utils/id.ts'
 import { getStaticPreviewUrl } from '@/utils/preview.ts'
 import { downloadAppCode } from '@/utils/download.ts'
 import { getCodeGenTypeLabel } from '@/constants/codeGenType.ts'
@@ -240,8 +245,14 @@ const sendMessage = (content: string, displayContent: string = content) => {
     return
   }
   const messages = chatHistory.messages
-  messages.value.push({ id: crypto.randomUUID(), role: 'user', content: displayContent.trim() })
-  messages.value.push({ id: crypto.randomUUID(), role: 'ai', content: '', loading: true })
+  messages.value.push({ id: generateLocalId(), role: 'user', content: displayContent.trim() })
+  messages.value.push({
+    id: generateLocalId(),
+    role: 'ai',
+    content: '',
+    loading: true,
+    streaming: true,
+  })
   // 取回数组中的响应式代理对象，而非本地原始对象，逐字追加内容时才能触发视图更新
   const aiMessage = messages.value[messages.value.length - 1]
   scrollToBottom()
@@ -250,6 +261,23 @@ const sendMessage = (content: string, displayContent: string = content) => {
   showPreview.value = false
   // 标记流程是否已结束（done/business-error/onerror 三者互斥，避免重复处理或互相覆盖结果）
   let streamCompleted = false
+
+  // 节流渲染：无论流式数据到达得多快，Markdown/代码高亮的重新计算最多每帧执行一次，
+  // 避免内容变长后，逐字符触发的全量高亮把主线程堵死
+  let renderFrameId: number | null = null
+  const scheduleRender = () => {
+    if (renderFrameId !== null) return
+    renderFrameId = requestAnimationFrame(() => {
+      renderFrameId = null
+      aiMessage.renderedHtml = renderMarkdown(aiMessage.content)
+    })
+  }
+  const cancelScheduledRender = () => {
+    if (renderFrameId !== null) {
+      cancelAnimationFrame(renderFrameId)
+      renderFrameId = null
+    }
+  }
 
   const url = `${API_BASE_URL}/app/chat/gen/code?appId=${appId.value}&message=${encodeURIComponent(trimmed)}`
   eventSource = new EventSource(url, { withCredentials: true })
@@ -261,6 +289,7 @@ const sendMessage = (content: string, displayContent: string = content) => {
       if (data.d) {
         aiMessage.content += data.d
         aiMessage.loading = false
+        scheduleRender()
         scrollToBottom()
       }
     } catch {
@@ -272,7 +301,10 @@ const sendMessage = (content: string, displayContent: string = content) => {
     // 后端在发送 business-error 后会紧接着再发一次 done，此时不应再覆盖已展示的错误结果
     if (streamCompleted) return
     streamCompleted = true
+    cancelScheduledRender()
     aiMessage.loading = false
+    // 关闭节流渲染，切回直接渲染 msg.content：此时内容已经不再变化，只会渲染这一次
+    aiMessage.streaming = false
     generating.value = false
     eventSource?.close()
     eventSource = null
@@ -283,6 +315,7 @@ const sendMessage = (content: string, displayContent: string = content) => {
   // 处理 business-error 事件（后端限流等错误）
   eventSource.addEventListener('business-error', (event: MessageEvent) => {
     if (streamCompleted) return
+    cancelScheduledRender()
     try {
       const errorData = JSON.parse(event.data)
       console.error('SSE业务错误事件:', errorData)
@@ -291,6 +324,7 @@ const sendMessage = (content: string, displayContent: string = content) => {
       const errorMessage = errorData.message || '生成过程中出现错误'
       aiMessage.content = `❌ ${errorMessage}`
       aiMessage.loading = false
+      aiMessage.streaming = false
       message.error(errorMessage)
 
       streamCompleted = true
@@ -302,6 +336,7 @@ const sendMessage = (content: string, displayContent: string = content) => {
       streamCompleted = true
       generating.value = false
       aiMessage.loading = false
+      aiMessage.streaming = false
       message.error('服务器返回错误')
       eventSource?.close()
       eventSource = null
@@ -312,8 +347,10 @@ const sendMessage = (content: string, displayContent: string = content) => {
     // business-error 已经展示过具体错误信息，这里不再重复弹提示/清空消息
     if (streamCompleted) return
     streamCompleted = true
+    cancelScheduledRender()
     generating.value = false
     aiMessage.loading = false
+    aiMessage.streaming = false
     if (!aiMessage.content) {
       message.error('生成失败，请重试')
       messages.value.pop()

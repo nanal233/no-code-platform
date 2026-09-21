@@ -26,11 +26,15 @@ public class RedisChatMemoryStoreConfig {
 
     @Bean
     public RedisChatMemoryStore redisChatMemoryStore() {
-        return RedisChatMemoryStore.builder()
+        RedisChatMemoryStore.Builder builder = RedisChatMemoryStore.builder()
                 .host(host)
                 .port(port)
-                .password(password)
-                .ttl(ttl)
-                .build();
+                .ttl(ttl);
+        // RedisChatMemoryStore 内部只有在 user 非空时才会真正带上密码去认证（user 为 null 时会建立完全不认证的连接，
+        // password 会被直接忽略）。Redis 只配置了 requirepass、没有额外 ACL 用户时，默认账号名就是 "default"。
+        if (password != null && !password.isBlank()) {
+            builder.user("default").password(password);
+        }
+        return builder.build();
     }
 }

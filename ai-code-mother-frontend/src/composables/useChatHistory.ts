@@ -9,6 +9,10 @@ export interface ChatMessage {
   role: 'user' | 'ai'
   content: string
   loading?: boolean
+  // AI 消息是否仍在流式生成中：为 true 时使用下面节流渲染出的 renderedHtml，避免每个字符都触发一次全量 Markdown/代码高亮
+  streaming?: boolean
+  // 流式生成过程中，节流渲染出的 Markdown HTML（每个动画帧最多重新渲染一次）
+  renderedHtml?: string
 }
 
 const PAGE_SIZE = 10
